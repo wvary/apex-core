@@ -167,16 +167,15 @@ public class StreamingContainerParent extends org.apache.hadoop.service.Composit
   }
 
   @Override
-  public void reportError(String containerId, int[] operators, String msg, String logFileName, long logFileOffset)
+  public void reportError(String containerId, int[] operators, String msg)
   {
     if (operators == null || operators.length == 0) {
-      dagManager.recordEventAsync(new ContainerErrorEvent(containerId, msg, logFileName, logFileOffset));
+      dagManager.recordEventAsync(new ContainerErrorEvent(containerId, msg));
     } else {
       for (int operator : operators) {
         OperatorInfo operatorInfo = dagManager.getOperatorInfo(operator);
         if (operatorInfo != null) {
-          dagManager.recordEventAsync(new OperatorErrorEvent(operatorInfo.name, operator, containerId, msg,
-              logFileName, logFileOffset));
+          dagManager.recordEventAsync(new OperatorErrorEvent(operatorInfo.name, operator, containerId, msg));
         }
       }
     }

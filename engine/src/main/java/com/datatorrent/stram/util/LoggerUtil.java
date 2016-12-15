@@ -18,25 +18,19 @@
  */
 package com.datatorrent.stram.util;
 
-import java.io.File;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Category;
-import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.log4j.Priority;
 import org.apache.log4j.spi.DefaultRepositorySelector;
 import org.apache.log4j.spi.HierarchyEventListener;
 import org.apache.log4j.spi.LoggerFactory;
@@ -283,64 +277,5 @@ public class LoggerUtil
       }
     }
     return ImmutableMap.copyOf(matchedClasses);
-  }
-
-  /**
-   * Returns logger log file name
-   * @return logFileName
-   */
-  @Evolving
-  public static String getLogFileName()
-  {
-    Set<FileAppender> fileAppenders = getRootFileAppenders();
-    //skip fetching log file name if we have multiple file Appenders
-    if (fileAppenders.size() == 1) {
-      FileAppender fileAppender = fileAppenders.iterator().next();
-      if (isErrorLevelEnable(fileAppender)) {
-        return fileAppender.getFile();
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Returns offset of current log file.
-   * @return logFileOffset
-   */
-  @Evolving
-  public static long getLogFileOffset()
-  {
-    Set<FileAppender> fileAppenders = getRootFileAppenders();
-    //skip fetching log file offset if we have multiple file Appenders
-    if (fileAppenders.size() == 1) {
-      FileAppender fileAppender = fileAppenders.iterator().next();
-      if (isErrorLevelEnable(fileAppender)) {
-        File logFile = new File(fileAppender.getFile());
-        return logFile.length();
-      }
-    }
-    return 0;
-  }
-
-  private static Set<FileAppender> getRootFileAppenders()
-  {
-    Enumeration e = LogManager.getRootLogger().getAllAppenders();
-    Set<FileAppender> fileAppenders = new HashSet<>();
-    while (e.hasMoreElements()) {
-      Appender appender = (Appender)e.nextElement();
-      if (appender instanceof FileAppender) {
-        fileAppenders.add((FileAppender)appender);
-      }
-    }
-    return fileAppenders;
-  }
-
-  private static boolean isErrorLevelEnable(FileAppender fileAppender)
-  {
-    Priority p = fileAppender.getThreshold();
-    if (p == null) {
-      p = LogManager.getRootLogger().getLevel();
-    }
-    return Level.ERROR.isGreaterOrEqual(p);
   }
 }

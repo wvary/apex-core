@@ -105,7 +105,7 @@ public class StramLocalCluster implements Runnable, Controller
     }
 
     @Override
-    public void reportError(String containerId, int[] operators, String msg, String logFileName, long logFileOffset)
+    public void reportError(String containerId, int[] operators, String msg)
     {
       try {
         log(containerId, msg);
