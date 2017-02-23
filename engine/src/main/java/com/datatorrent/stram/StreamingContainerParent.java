@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.apex.log.LogFileInformation;
-
+import org.apache.apex.stram.DeployRequest.EventGroupId;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.ipc.ProtocolSignature;
@@ -174,16 +174,17 @@ public class StreamingContainerParent extends org.apache.hadoop.service.Composit
   }
 
   @Override
-  public void reportError(String containerId, int[] operators, String msg, LogFileInformation logFileInfo) throws IOException
+  public void reportError(String containerId, int[] operators, String msg, LogFileInformation logFileInfo, EventGroupId groupId)
+      throws IOException
   {
     if (operators == null || operators.length == 0) {
-      dagManager.recordEventAsync(new ContainerErrorEvent(containerId, msg, logFileInfo));
+      dagManager.recordEventAsync(new ContainerErrorEvent(containerId, msg, logFileInfo, groupId));
     } else {
       for (int operator : operators) {
         OperatorInfo operatorInfo = dagManager.getOperatorInfo(operator);
         if (operatorInfo != null) {
-          dagManager.recordEventAsync(new OperatorErrorEvent(operatorInfo.name, operator, containerId, msg,
-              logFileInfo));
+          dagManager.recordEventAsync(
+              new OperatorErrorEvent(operatorInfo.name, operator, containerId, msg, logFileInfo, groupId));
         }
       }
     }

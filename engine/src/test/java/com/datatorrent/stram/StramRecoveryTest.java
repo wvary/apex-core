@@ -494,7 +494,7 @@ public class StramRecoveryTest
       }
     };
     Mockito.doAnswer(answer).when(impl).log("containerId", "timeout");
-    Mockito.doAnswer(answer).when(impl).reportError("containerId", null, "timeout", null);
+    Mockito.doAnswer(answer).when(impl).reportError("containerId", null, "timeout", null, null);
 
     Server server = new RPC.Builder(conf).setProtocol(StreamingContainerUmbilicalProtocol.class).setInstance(impl)
         .setBindAddress("0.0.0.0").setPort(0).setNumHandlers(1).setVerbose(false).build();
@@ -548,7 +548,7 @@ public class StramRecoveryTest
 
     rp = new RecoverableRpcProxy(appPath, conf);
     protocolProxy = rp.getProxy();
-    protocolProxy.reportError("containerId", null, "msg", null);
+    protocolProxy.reportError("containerId", null, "msg", null, null);
     try {
       protocolProxy.log("containerId", "timeout");
       Assert.fail("expected socket timeout");
@@ -564,7 +564,7 @@ public class StramRecoveryTest
     uri = RecoverableRpcProxy.toConnectURI(address);
     recoveryHandler.writeConnectUri(uri.toString());
 
-    protocolProxy.reportError("containerId", null, "timeout", null);
+    protocolProxy.reportError("containerId", null, "timeout", null, null);
     Assert.assertTrue("timedout", timedout.get());
 
     restoreSystemProperty(RecoverableRpcProxy.RPC_TIMEOUT, rpcTimeout);

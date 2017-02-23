@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.apex.log.LogFileInformation;
-
+import org.apache.apex.stram.DeployRequest.EventGroupId;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -158,6 +158,30 @@ public interface StreamingContainerUmbilicalProtocol extends VersionedProtocol
     public void setIntervalMs(long intervalMs)
     {
       this.intervalMs = intervalMs;
+    }
+
+    public EventGroupId undeployGroupId;
+
+    public EventGroupId getUndeployGroupId()
+    {
+      return undeployGroupId;
+    }
+
+    public void setUndeployGroupId(EventGroupId undeployGroupId)
+    {
+      this.undeployGroupId = undeployGroupId;
+    }
+
+    public EventGroupId deployGroupId;
+
+    public EventGroupId getDeployGroupId()
+    {
+      return deployGroupId;
+    }
+
+    public void setDeployGroupId(EventGroupId deployGroupId)
+    {
+      this.deployGroupId = deployGroupId;
     }
 
     /**
@@ -434,7 +458,7 @@ public interface StreamingContainerUmbilicalProtocol extends VersionedProtocol
    * @param msg
    * @param logFileInfo
    */
-  void reportError(String containerId, int[] operators, String msg, LogFileInformation logFileInfo) throws IOException;
+  void reportError(String containerId, int[] operators, String msg, LogFileInformation logFileInfo, EventGroupId groupId) throws IOException;
 
   /**
    * To be called periodically by child for heartbeat protocol.

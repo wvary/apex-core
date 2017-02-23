@@ -49,6 +49,8 @@ import org.apache.apex.engine.plugin.DefaultApexPluginDispatcher;
 import org.apache.apex.engine.plugin.loaders.ChainedPluginLocator;
 import org.apache.apex.engine.plugin.loaders.PropertyBasedPluginLocator;
 import org.apache.apex.engine.plugin.loaders.ServiceLoaderBasedPluginLocator;
+import org.apache.apex.stram.DeployManager;
+import org.apache.apex.stram.DeployRequest.EventGroupId;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
@@ -161,6 +163,7 @@ public class StreamingAppMasterService extends CompositeService
   private StramDelegationTokenManager delegationTokenManager = null;
   private AppDataPushAgent appDataPushAgent;
   private ApexPluginDispatcher apexPluginDispatcher;
+  private DeployManager deployManager = DeployManager.getDeployManagerInstance();
 
   public StreamingAppMasterService(ApplicationAttemptId appAttemptID)
   {
@@ -935,7 +938,8 @@ public class StreamingAppMasterService extends CompositeService
           launchContainer.run(); // communication with NMs is now async
 
           // record container start event
-          StramEvent ev = new StramEvent.StartContainerEvent(allocatedContainer.getId().toString(), allocatedContainer.getNodeId().toString());
+          StramEvent ev = new StramEvent.StartContainerEvent(allocatedContainer.getId().toString(),
+              allocatedContainer.getNodeId().toString(), deployManager.getEventGroupIdForAffectedContainer(allocatedContainer.getId().toString()));
           ev.setTimestamp(timestamp);
           dnmgr.recordEventAsync(ev);
         }
@@ -960,6 +964,7 @@ public class StreamingAppMasterService extends CompositeService
           UserGroupInformation ugi = UserGroupInformation.getLoginUser();
           delegationTokenManager.cancelToken(allocatedContainer.delegationToken, ugi.getUserName());
         }
+        EventGroupId groupId = null;
         int exitStatus = containerStatus.getExitStatus();
         if (0 != exitStatus) {
           if (allocatedContainer != null) {
@@ -1002,7 +1007,9 @@ public class StreamingAppMasterService extends CompositeService
           // Recoverable failure or process killed (externally or via stop request by AM)
           // also occurs when a container was released by the application but never assigned/launched
           LOG.debug("Container {} failed or killed.", containerStatus.getContainerId());
-          dnmgr.scheduleContainerRestart(containerStatus.getContainerId().toString());
+          String containerIdStr = containerStatus.getContainerId().toString();
+          dnmgr.scheduleContainerRestart(containerIdStr);
+          groupId = deployManager.getEventGroupIdForAffectedContainer(containerIdStr);
 //          }
         } else {
           // container completed successfully
@@ -1020,7 +1027,7 @@ public class StreamingAppMasterService extends CompositeService
         dnmgr.removeContainerAgent(containerIdStr);
 
         // record container stop event
-        StramEvent ev = new StramEvent.StopContainerEvent(containerIdStr, containerStatus.getExitStatus());
+        StramEvent ev = new StramEvent.StopContainerEvent(containerIdStr, containerStatus.getExitStatus(), groupId);
         ev.setReason(containerStatus.getDiagnostics());
         dnmgr.recordEventAsync(ev);
       }
