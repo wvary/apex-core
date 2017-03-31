@@ -140,14 +140,26 @@ public class DeployManagerTest
   }
 
   @Test
+  public void testNotRemovalProcessedDeployRequest()
+  {
+    String failedContainerId = "container_1";
+    underTest.addOrModifyDeployRequest(failedContainerId, ImmutableSet.of(oper1));
+    Assert.assertEquals(1, underTest.getDeployRequests().size());
+    underTest.removeProcessedOperatorAndRequests(oper1);  //request is not processed yet and hence won't be removed.
+    Assert.assertEquals(1, underTest.getDeployRequests().size());
+    DeployRequest request = underTest.getDeployRequests().values().iterator().next();
+    Assert.assertTrue(request.getOperatorsToUndeploy().contains(oper1.getId()));
+  }
+
+  @Test
   public void testRemoveProcessedDeployRequest()
   {
-    underTest.addOrModifyDeployRequest(affectedContainerId, ImmutableSet.of(oper1));
+    String failedContainerId = "container_1";
+    underTest.addOrModifyDeployRequest(failedContainerId, ImmutableSet.of(oper1));
     Assert.assertEquals(1, underTest.getDeployRequests().size());
     underTest.moveOperatorFromUndeployListToDeployList(oper1); //move from updeploy to deploy list
-    underTest.removeProcessedOperatorAndRequest(oper1);
+    underTest.removeProcessedOperatorAndRequests(oper1);
     Assert.assertEquals(0, underTest.getDeployRequests().size());
-
   }
 
   @After
