@@ -1208,6 +1208,7 @@ public class StreamingContainerManager implements PlanContext
     if (containerAgent != null) {
       // record operator stop for this container
       for (PTOperator oper : containerAgent.container.getOperators()) {
+        deployManager.moveOperatorFromUndeployListToDeployList(oper);
         StramEvent ev = new StramEvent.StopOperatorEvent(oper.getName(), oper.getId(), containerId, deployManager.getEventGroupIdForContainer(containerId));
         recordEventAsync(ev);
       }
@@ -1429,7 +1430,7 @@ public class StreamingContainerManager implements PlanContext
           oper.stats.lastHeartbeat = null; // reset on redeploy
           oper.stats.lastWindowIdChangeTms = clock.getTime();
           recordEventAsync(new StramEvent.StartOperatorEvent(oper.getName(), oper.getId(), container.getExternalId(),  ohb.getDeployGroupId()));
-          deployManager.removeProcessedOperatorAndRequest(oper);
+          deployManager.removeProcessedOperatorAndRequests(oper);
         }
         break;
       default:
