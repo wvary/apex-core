@@ -36,6 +36,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.apex.engine.security.ACLManager;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -427,6 +429,12 @@ public class StramClient
       amContainer.setTokens(fsTokens);
     }
 
+    // Setup ACLs for the impersonating user
+    LOG.debug("ACL login user {} current user {}", UserGroupInformation.getLoginUser(), UserGroupInformation.getCurrentUser());
+    if (!UserGroupInformation.getCurrentUser().equals(UserGroupInformation.getLoginUser())) {
+      ACLManager.setupUserACLs(amContainer, UserGroupInformation.getLoginUser().getShortUserName(), conf);
+    }
+
     // set local resources for the application master
     // local files or archives as needed
     // In this scenario, the jar file for the application master is part of the local resources
@@ -542,6 +550,7 @@ public class StramClient
       }
       env.put("CLASSPATH", classPathEnv.toString());
       // propagate to replace node managers user name (effective in non-secure mode)
+      // also to indicate original login user during impersonation and important for setting ACLs
       env.put("HADOOP_USER_NAME", UserGroupInformation.getLoginUser().getUserName());
 
       amContainer.setEnvironment(env);
