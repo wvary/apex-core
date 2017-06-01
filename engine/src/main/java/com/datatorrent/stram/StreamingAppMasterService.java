@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -164,6 +165,7 @@ public class StreamingAppMasterService extends CompositeService
   private AppDataPushAgent appDataPushAgent;
   private ApexPluginDispatcher apexPluginDispatcher;
   private DeployManager deployManager = DeployManager.getDeployManagerInstance();
+  private Map<String, Long> pendingContainersToKill = new ConcurrentHashMap<>();
 
   public StreamingAppMasterService(ApplicationAttemptId appAttemptID)
   {
@@ -867,6 +869,21 @@ public class StreamingAppMasterService extends CompositeService
       }
 
       numRequestedContainers += containerRequests.size() - removedContainerRequests.size();
+
+      for (String containerId : dnmgr.containerStopRequests.values()) {
+        Long pendingSince = pendingContainersToKill.get(containerId);
+        if (pendingSince == null) {
+          pendingContainersToKill.put(containerId, System.currentTimeMillis());
+        }
+      }
+
+      for (Map.Entry<String, Long> pendingToKill : pendingContainersToKill.entrySet()) {
+        if (System.currentTimeMillis() - pendingToKill.getValue() > 30 * 1000) {
+          LOG.info("Timeout happened for NodeManager kill container request, recovering the container {} without waiting", pendingToKill.getKey());
+          recoverContainer(pendingToKill.getKey());
+        }
+      }
+
       AllocateResponse amResp = sendContainerAskToRM(containerRequests, removedContainerRequests, releasedContainers);
       if (amResp.getAMCommand() != null) {
         LOG.info(" statement executed:{}", amResp.getAMCommand());
@@ -1235,21 +1252,25 @@ public class StreamingAppMasterService extends CompositeService
       // short circuit and schedule recovery directly
       recoverContainer(containerId);
     }
+  }
 
-    private void recoverContainer(final ContainerId containerId)
+  private void recoverContainer(final ContainerId containerId)
+  {
+    recoverContainer(containerId.toString());
+  }
+
+  private void recoverContainer(final String containerId)
+  {
+    pendingTasks.add(new Runnable()
     {
-      pendingTasks.add(new Runnable()
+      @Override
+      public void run()
       {
-        @Override
-        public void run()
-        {
-          dnmgr.scheduleContainerRestart(containerId.toString());
-          allocatedContainers.remove(containerId.toString());
-        }
-
-      });
-    }
-
+        dnmgr.scheduleContainerRestart(containerId);
+        allocatedContainers.remove(containerId);
+        pendingContainersToKill.remove(containerId);
+      }
+    });
   }
 
   private class AllocatedContainer
